@@ -1,3 +1,5 @@
+-- My version
+
 -- SELECT properties.id,
 --   properties.title,
 --   properties.cost_per_night,
