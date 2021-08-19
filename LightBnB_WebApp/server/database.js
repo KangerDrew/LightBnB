@@ -22,9 +22,8 @@ const getUserWithEmail = function(email) {
   .then((result) => {
     if (result.rows.length === 1) {
       return result.rows[0];
-    } else {
-      return null;
-    }
+    } 
+    return null;
   })
   .catch((err) => {
     console.log(err.message);
@@ -43,9 +42,8 @@ const getUserWithId = function(id) {
   .then((result) => {
     if (result.rows.length === 1) {
       return result.rows[0];
-    } else {
-      return null;
     }
+    return null;
   })
   .catch((err) => {
     console.log(err.message);
@@ -71,6 +69,7 @@ const addUser =  function(user) {
   VALUES($1, $2, $3) RETURNING *`, [user.name, user.email, user.password])
   .then((result) => {
     console.log(result.rows);
+    return result.rows;
   })
   .catch((err) => {
     console.log(err.message);
