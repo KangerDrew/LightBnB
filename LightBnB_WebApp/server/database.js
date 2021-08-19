@@ -83,10 +83,13 @@ exports.addUser = addUser;
  */
 const getAllReservations = function(guest_id, limit = 10) {
   return pool
-  .query(`SELECT * 
-  FROM reservations r
-  JOIN properties p ON r.property_id = p.id
-  WHERE guest_id = $1
+  .query(`SELECT *,
+  AVG(rev.rating) AS average_rating
+  FROM reservations res
+  JOIN properties p ON res.property_id = p.id
+  JOIN property_reviews rev ON p.id = rev.property_id
+  WHERE res.guest_id = $1
+  GROUP BY p.id, res.id, rev.id
   LIMIT $2;`, [guest_id, limit])
   .then((result) => {
     return result.rows;
@@ -108,14 +111,69 @@ exports.getAllReservations = getAllReservations;
 
 
 const getAllProperties = (options, limit = 10) => {
+  // return pool
+  //   .query(`SELECT p.*,
+  //   AVG(rev.rating) AS average_rating
+  //   FROM properties p
+  //   JOIN property_reviews rev ON p.id = rev.property_id
+  //   GROUP BY p.id
+  //   LIMIT $1;`, [limit])
+  //   .then((result) => {
+  //     return result.rows;
+  //   })
+  //   .catch((err) => {
+  //     console.log(err.message);
+  //   });
+
+  const queryParams = [];
+
+  let queryString = `
+  SELECT p.*,
+  AVG(rev.rating) AS average_rating
+  FROM properties p
+  JOIN property_reviews rev ON p.id = rev.property_id
+  WHERE p.id = p.id `;
+
+  if (options.city) {
+    queryParams.push(`%${options.city}%`);
+    queryString += `AND city LIKE $${queryParams.length} `;
+  }
+
+  if (options.owner_id) {
+    queryParams.push(`%${options.owner_id}%`);
+    queryString += `AND owner_id LIKE $${queryParams.length} `;
+  }
+
+  if (options.minimum_price_per_night) {
+    queryParams.push(options.minimum_price_per_night);
+    queryString += `AND p.cost_per_night >= $${queryParams.length} `;
+  }
+
+  if (options.maximum_price_per_night) {
+    queryParams.push(options.maximum_price_per_night);
+    queryString += `AND p.cost_per_night <= $${queryParams.length} `;
+  }
+
+  queryString += `GROUP BY p.id `
+
+  if (options.minimum_rating) {
+    queryParams.push(options.minimum_rating);
+    queryString += `HAVING AVG(rev.rating) > $${queryParams.length} `;
+  }
+
+  queryParams.push(limit);
+  queryString += `
+  LIMIT $${queryParams.length};`;
+
   return pool
-    .query(`SELECT * FROM properties LIMIT $1`, [limit])
-    .then((result) => {
-      return result.rows;
+    .query(queryString, queryParams)
+    .then((res) => {
+      return res.rows
     })
     .catch((err) => {
       console.log(err.message);
     });
+
 };
 
 exports.getAllProperties = getAllProperties;
